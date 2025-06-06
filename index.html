@@ -6,6 +6,36 @@
     <title>API Key Manager</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        /* Sticky Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #f8f8f8;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .header button:hover {
+            background-color: #0056b3;
+        }
+
         .profile { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
         button { background-color: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; margin-right: 5px; }
         button.delete { background-color: #f44336; }
@@ -56,12 +86,17 @@
     </style>
 </head>
 <body>
-    <h1>API Key Manager</h1>
+    <div class="header">
+        <h1>API Key Manager</h1>
+        <button id="new-profile-btn">New Profile</button>
+    </div>
 
     <div id="profiles-container"></div>
 
-    <div id="form-section">
-        <div id="create-form">
+    <!-- Create New Profile Modal -->
+    <div id="createProfileModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button create-close-button">&times;</span>
             <h2>Create New Profile</h2>
             <div class="form-group">
                 <label>Name:</label>
@@ -77,8 +112,12 @@
             </div>
             <button id="create-btn">Create Profile</button>
         </div>
+    </div>
 
-        <div id="edit-form" class="edit-form">
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button edit-close-button">&times;</span>
             <h2>Edit Profile</h2>
             <div class="form-group">
                 <label>Name:</label>
@@ -97,9 +136,8 @@
         </div>
     </div>
 
-    <!-- The Modal -->
+    <!-- API Response Modal -->
     <div id="apiResponseModal" class="modal">
-        <!-- Modal content -->
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <h2>API Test Response</h2>
@@ -112,11 +150,25 @@
         let currentEditProfile = null;
         
         // DOM Elements
-        const createForm = document.getElementById('create-form');
-        const editForm = document.getElementById('edit-form');
+        // DOM Elements
+        const newProfileBtn = document.getElementById('new-profile-btn');
+        
+        // Create Modal Elements
+        const createProfileModal = document.getElementById('createProfileModal');
+        const profileNameInput = document.getElementById('profile-name');
+        const baseUrlInput = document.getElementById('base-url');
+        const apiKeysInput = document.getElementById('api-keys');
         const createBtn = document.getElementById('create-btn');
+        const createCloseButton = document.getElementsByClassName('create-close-button')[0];
+
+        // Edit Modal Elements
+        const editProfileModal = document.getElementById('editProfileModal');
+        const editProfileNameInput = document.getElementById('edit-profile-name');
+        const editBaseUrlInput = document.getElementById('edit-base-url');
+        const editApiKeysInput = document.getElementById('edit-api-keys');
         const updateBtn = document.getElementById('update-btn');
         const cancelEditBtn = document.getElementById('cancel-edit-btn');
+        const editCloseButton = document.querySelector('#editProfileModal .close-button');
 
         // Fetch and display profiles
         async function loadProfiles() {
@@ -145,11 +197,16 @@
             });
         }
         
+        // Show Create Profile Modal
+        newProfileBtn.addEventListener('click', () => {
+            createProfileModal.style.display = 'block';
+        });
+
         // Create new profile
         createBtn.addEventListener('click', async () => {
-            const name = document.getElementById('profile-name').value;
-            const baseUrl = document.getElementById('base-url').value;
-            const keysInput = document.getElementById('api-keys').value;
+            const name = profileNameInput.value;
+            const baseUrl = baseUrlInput.value;
+            const keysInput = apiKeysInput.value;
             
             const keys = {};
             if (keysInput) {
@@ -167,15 +224,21 @@
             
             if (response.ok) {
                 alert('Profile created successfully!');
-                document.getElementById('profile-name').value = '';
-                document.getElementById('base-url').value = '';
-                document.getElementById('api-keys').value = '';
+                profileNameInput.value = '';
+                baseUrlInput.value = '';
+                apiKeysInput.value = '';
+                createProfileModal.style.display = 'none'; // Hide modal on success
                 loadProfiles();
             } else {
                 const error = await response.json();
                 alert(`Error: ${error.error}`);
             }
         });
+
+        // Close create modal when clicking on (x)
+        createCloseButton.onclick = function() {
+            createProfileModal.style.display = 'none';
+        }
         
         // Delete profile
         async function deleteProfile(name) {
@@ -190,7 +253,7 @@
             }
         }
         
-        // Start editing a profile
+        // Start editing a profile (opens modal)
         async function startEditProfile(name) {
             try {
                 const response = await fetch(`${API_BASE}/${name}`);
@@ -198,17 +261,15 @@
                 
                 currentEditProfile = profile;
                 
-                document.getElementById('edit-profile-name').value = profile.name;
-                document.getElementById('edit-base-url').value = profile.baseUrl || '';
+                editProfileNameInput.value = profile.name;
+                editBaseUrlInput.value = profile.baseUrl || '';
                 
                 // Format keys as string
                 const keysStr = Object.values(profile.keys)
                     .join(',');
-                document.getElementById('edit-api-keys').value = keysStr;
+                editApiKeysInput.value = keysStr;
                 
-                // Show edit form, hide create form
-                createForm.style.display = 'none';
-                editForm.style.display = 'block';
+                editProfileModal.style.display = 'block'; // Show the modal
             } catch (err) {
                 alert(`Error loading profile: ${err.message}`);
             }
@@ -251,20 +312,32 @@
             }
         });
         
-        // Cancel edit
+        // Cancel edit (closes modal)
         function cancelEdit() {
-            createForm.style.display = 'block';
-            editForm.style.display = 'none';
+            editProfileModal.style.display = 'none';
             currentEditProfile = null;
         }
         
         cancelEditBtn.addEventListener('click', cancelEdit);
+
+        // Close edit modal when clicking on (x)
+        editCloseButton.onclick = function() {
+            cancelEdit();
+        }
+
+        // Close edit modal when clicking outside of it
+        window.onclick = function(event) {
+            if (event.target == editProfileModal || event.target == createProfileModal) {
+                editProfileModal.style.display = 'none'; // Hide edit modal
+                createProfileModal.style.display = 'none'; // Hide create modal
+            }
+        }
         
         // Test profile connection
         async function testProfile(name, keyName) {
             const modal = document.getElementById('apiResponseModal');
             const modalContent = document.getElementById('modal-response-content');
-            const closeButton = document.getElementsByClassName('close-button')[0];
+            const closeButton = document.getElementsByClassName('close-button')[0]; // This is for apiResponseModal
 
             modalContent.textContent = 'Testing...';
             modal.style.display = 'block'; // Show the modal

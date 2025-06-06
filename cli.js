@@ -100,12 +100,49 @@ program.command('delete <name>')
 
 program.command('test <name>')
   .description('Test the profile connection and API key validity')
-  .action(async (name) => {
+  .option('-k, --key <keyName>', 'Specify the key to use for testing')
+  .action(async (name, options) => {
     try {
-      const result = await profiles.testProfile(name);
+      const profile = profiles.getProfile(name);
+      const keys = Object.keys(profile.keys);
+      let selectedKey = options.key;
+
+      if (!selectedKey && keys.length > 1) {
+        console.log(`Profile "${name}" has multiple keys:`);
+        keys.forEach((key, index) => {
+          console.log(`${index + 1}. ${key}`);
+        });
+
+        const readline = require('readline').createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
+
+        selectedKey = await new Promise(resolve => {
+          readline.question('Please select a key by number or name: ', answer => {
+            readline.close();
+            const index = parseInt(answer) - 1;
+            if (!isNaN(index) && index >= 0 && index < keys.length) {
+              resolve(keys[index]);
+            } else if (keys.includes(answer)) {
+              resolve(answer);
+            } else {
+              console.error('Invalid selection. Using the first available key.');
+              resolve(keys[0]);
+            }
+          });
+        });
+      } else if (!selectedKey && keys.length === 1) {
+        selectedKey = keys[0];
+      } else if (!selectedKey && keys.length === 0) {
+        console.error(`❌ Profile "${name}" has no keys.`);
+        process.exit(1);
+      }
+
+      const result = await profiles.testProfile(name, selectedKey);
       if (result.valid) {
         console.log(`✅ Profile "${name}" is valid.`);
-        console.log(`Endpoint: ${profiles.getProfile(name).endpoint}`);
+        console.log(`Endpoint: ${profile.baseUrl}`);
         console.log(`Models: ${result.models.join(', ')}`);
       } else {
         console.error(`❌ Profile "${name}" is invalid.`);

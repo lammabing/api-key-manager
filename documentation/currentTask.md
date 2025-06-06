@@ -8,8 +8,8 @@
   - [x] Core test function implementation
   - [x] CLI test command
   - [x] Web API test endpoint
-  - [x] Web UI integration
-  - [x] User-selectable API keys for testing
+  - [x] Web UI integration (Edit form as modal)
+  - [x] User-selectable API keys for testing (CLI and Web)
 
 ## In Progress
 - API key encryption at rest
@@ -26,4 +26,4 @@
 - Error handling for invalid API endpoints
 
 ---
-_Last updated: 2025-06-04 by Documentation Bot_
+_Last updated: 2025-06-04, 8:06:30 PM (Asia/Shanghai) by Documentation Bot_

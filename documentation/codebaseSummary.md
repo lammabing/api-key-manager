@@ -18,9 +18,10 @@
 - **node-fetch**: HTTP requests for API testing
 
 ## Recent Changes (2025-06-04)
-- Implemented user-selectable API keys for testing
+- Implemented user-selectable API keys for testing (CLI now includes interactive selection)
 - Added API endpoint for retrieving profile keys (`GET /profiles/:name/keys`)
 - Updated web UI to allow key selection for testing
+- Web UI edit form now uses a modal pop-up for improved visibility.
 - Added API endpoint testing functionality
 - Integrated test capabilities into CLI and web UI
 - Created documentation suite
@@ -31,4 +32,4 @@
  - **TestResult**: Validation output from API tests
  
  ---
- _Last updated: 2025-06-04 by Documentation Bot_
+ _Last updated: 2025-06-04, 8:07:40 PM (Asia/Shanghai) by Documentation Bot_

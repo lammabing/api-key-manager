@@ -15,6 +15,7 @@ This document outlines the high-level goals and planned features for the API Key
 - [x] User-selectable API keys for testing
 - [x] CLI interface
 - [x] Web dashboard
+- [x] Enhanced Web UI (Modal for Edit Form)
 - [x] API endpoint testing
 - [ ] Key rotation automation
 - [ ] Usage monitoring
@@ -31,4 +32,4 @@ This document outlines the high-level goals and planned features for the API Key
 - Supporting diverse API providers
 
 ---
-_Last updated: 2025-06-04 by Documentation Bot_
+_Last updated: 2025-06-04, 8:06:00 PM (Asia/Shanghai) by Documentation Bot_
