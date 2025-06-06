@@ -83,6 +83,10 @@
             white-space: pre-wrap; /* Ensures text wraps */
             word-wrap: break-word; /* Breaks long words */
         }
+        .api-key-display {
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body>
@@ -185,7 +189,7 @@
                     <h3>${profile.name}</h3>
                     <p><strong>Base URL:</strong> ${profile.baseUrl || 'N/A'}</p>
                     <p><strong>Keys:</strong></p>
-                    <pre>${JSON.stringify(profile.keys, null, 2)}</pre>
+                    <pre class="api-key-display">${JSON.stringify(profile.keys, null, 2)}</pre>
                     <button onclick="startEditProfile('${profile.name}')">Edit</button>
                     <button class="delete" onclick="deleteProfile('${profile.name}')">Delete</button>
                     <select id="key-select-${profile.name}" style="margin-left: 10px;">
