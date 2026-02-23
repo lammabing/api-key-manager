@@ -1,0 +1,25 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/mnt/g/www/api-key-manager/logs/.e05bafd76478eb0aebd30ebb7ddac9563bce2854-audit.json",
+    "files": [
+        {
+            "date": 1752082107346,
+            "name": "/mnt/g/www/api-key-manager/logs/mcp-puppeteer-2025-07-10.log",
+            "hash": "e5951491dae0cb64e297eb59ae1325f1a40ff5a96bd423120d85c7fcd848b53a"
+        },
+        {
+            "date": 1752226703910,
+            "name": "/mnt/g/www/api-key-manager/logs/mcp-puppeteer-2025-07-11.log",
+            "hash": "98762cd7756032db1094fa42e1f6b86ea9460179e12c7aa90baece347e636419"
+        },
+        {
+            "date": 1753082789588,
+            "name": "/mnt/g/www/api-key-manager/logs/mcp-puppeteer-2025-07-21.log",
+            "hash": "c1fc478f5157a1f403175ee058e16cd8dfcc471de9520ebcd03ad502639e2ae0"
+        }
+    ],
+    "hashType": "sha256"
+}

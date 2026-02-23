@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Key Manager</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; font-size: 14px; }
+        /* Sticky Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #f8f8f8;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .header button:hover {
+            background-color: #0056b3;
+        }
+
+        .profile { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
+        button { background-color: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; margin-right: 5px; }
+        button.delete { background-color: #f44336; }
+        button.cancel { background-color: #9e9e9e; }
+        .form-group { margin-bottom: 10px; }
+        input, textarea { width: 100%; padding: 8px; }
+        .edit-form { display: none; border: 1px solid #ccc; padding: 20px; margin-top: 20px; }
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+        .modal-content {
+         background-color: #fefefe;
+         margin: 15% auto; /* 15% from the top and centered */
+         padding: 20px;
+         border: 1px solid #888;
+         width: 80%; /* Could be more or less, depending on screen size */
+         max-width: 800px; /* Match the page content width */
+         border-radius: 8px;
+         position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-pre {
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap; /* Ensures text wraps */
+            word-wrap: break-word; /* Breaks long words */
+            font-size: 13px;
+        }
+        .api-keys-list {
+            margin: 10px 0;
+        }
+
+        .api-key-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .key-name {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .key-value {
+            flex-grow: 1;
+            word-break: break-all;
+            margin-right: 10px;
+            font-size: 12px;
+        }
+
+        .copy-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .copy-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>API Key Manager</h1>
+        <button id="new-profile-btn">New Profile</button>
+    </div>
+
+    <div id="profiles-container"></div>
+
+    <!-- Create New Profile Modal -->
+    <div id="createProfileModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button create-close-button">&times;</span>
+            <h2>Create New Profile</h2>
+            <div class="form-group">
+                <label>Name:</label>
+                <input type="text" id="profile-name" required>
+            </div>
+            <div class="form-group">
+                <label>Base URL:</label>
+                <input type="text" id="base-url">
+            </div>
+            <div class="form-group">
+                <label>API Type:</label>
+                <select id="api-type">
+                    <option value="llm">LLM (Language Model)</option>
+                    <option value="rest">REST API</option>
+                    <option value="oauth">OAuth</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Authentication Method:</label>
+                <select id="auth-method">
+                    <option value="bearer">Bearer Token</option>
+                    <option value="apikey">API Key</option>
+                    <option value="basic">Basic Auth</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div id="auth-config-section" style="display:none;">
+                <div class="form-group">
+                    <label>Header Name:</label>
+                    <input type="text" id="header-name" value="Authorization">
+                </div>
+                <div class="form-group">
+                    <label>Header Format:</label>
+                    <input type="text" id="header-format" value="Bearer {key}">
+                </div>
+                <div class="form-group">
+                    <label>Query Param Name:</label>
+                    <input type="text" id="param-name">
+                </div>
+                <div class="form-group">
+                    <label>Auth Location:</label>
+                    <select id="auth-location">
+                        <option value="header">Header</option>
+                        <option value="query">Query Parameter</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Test Endpoint:</label>
+                <input type="text" id="test-endpoint" value="/models">
+            </div>
+            <div class="form-group">
+                <label>API Keys (comma-separated values):</label>
+                <input type="text" id="api-keys">
+            </div>
+            <button id="create-btn">Create Profile</button>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button edit-close-button">&times;</span>
+            <h2>Edit Profile</h2>
+            <div class="form-group">
+                <label>Name:</label>
+                <input type="text" id="edit-profile-name" required>
+            </div>
+            <div class="form-group">
+                <label>Base URL:</label>
+                <input type="text" id="edit-base-url">
+            </div>
+            <div class="form-group">
+                <label>API Type:</label>
+                <select id="edit-api-type">
+                    <option value="llm">LLM (Language Model)</option>
+                    <option value="rest">REST API</option>
+                    <option value="oauth">OAuth</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Authentication Method:</label>
+                <select id="edit-auth-method">
+                    <option value="bearer">Bearer Token</option>
+                    <option value="apikey">API Key</option>
+                    <option value="basic">Basic Auth</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div id="edit-auth-config-section" style="display:none;">
+                <div class="form-group">
+                    <label>Header Name:</label>
+                    <input type="text" id="edit-header-name">
+                </div>
+                <div class="form-group">
+                    <label>Header Format:</label>
+                    <input type="text" id="edit-header-format">
+                </div>
+                <div class="form-group">
+                    <label>Query Param Name:</label>
+                    <input type="text" id="edit-param-name">
+                </div>
+                <div class="form-group">
+                    <label>Auth Location:</label>
+                    <select id="edit-auth-location">
+                        <option value="header">Header</option>
+                        <option value="query">Query Parameter</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Test Endpoint:</label>
+                <input type="text" id="edit-test-endpoint">
+            </div>
+            <div class="form-group">
+                <label>API Keys (comma-separated values):</label>
+                <input type="text" id="edit-api-keys">
+            </div>
+            <button id="update-btn">Update Profile</button>
+            <button class="cancel" id="cancel-edit-btn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- API Response Modal -->
+    <div id="apiResponseModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>API Test Response</h2>
+            <pre id="modal-response-content" class="modal-pre"></pre>
+        </div>
+    </div>
+ 
+    <script>
+        const API_BASE = 'http://localhost:3025/profiles';
+        let currentEditProfile = null;
+
+        // DOM Elements
+        const newProfileBtn = document.getElementById('new-profile-btn');
+
+        // Create Modal Elements
+        const createProfileModal = document.getElementById('createProfileModal');
+        const profileNameInput = document.getElementById('profile-name');
+        const baseUrlInput = document.getElementById('base-url');
+        const apiTypeSelect = document.getElementById('api-type');
+        const authMethodSelect = document.getElementById('auth-method');
+        const headerNameInput = document.getElementById('header-name');
+        const headerFormatInput = document.getElementById('header-format');
+        const paramNameInput = document.getElementById('param-name');
+        const authLocationSelect = document.getElementById('auth-location');
+        const testEndpointInput = document.getElementById('test-endpoint');
+        const apiKeysInput = document.getElementById('api-keys');
+        const createBtn = document.getElementById('create-btn');
+        const createCloseButton = document.getElementsByClassName('create-close-button')[0];
+        const authConfigSection = document.getElementById('auth-config-section');
+
+        // Edit Modal Elements
+        const editProfileModal = document.getElementById('editProfileModal');
+        const editProfileNameInput = document.getElementById('edit-profile-name');
+        const editBaseUrlInput = document.getElementById('edit-base-url');
+        const editApiTypeSelect = document.getElementById('edit-api-type');
+        const editAuthMethodSelect = document.getElementById('edit-auth-method');
+        const editHeaderNameInput = document.getElementById('edit-header-name');
+        const editHeaderFormatInput = document.getElementById('edit-header-format');
+        const editParamNameInput = document.getElementById('edit-param-name');
+        const editAuthLocationSelect = document.getElementById('edit-auth-location');
+        const editTestEndpointInput = document.getElementById('edit-test-endpoint');
+        const editApiKeysInput = document.getElementById('edit-api-keys');
+        const updateBtn = document.getElementById('update-btn');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+        const editCloseButton = document.querySelector('#editProfileModal .close-button');
+        const editAuthConfigSection = document.getElementById('edit-auth-config-section');
+
+        // Toggle auth config section based on auth method
+        authMethodSelect.addEventListener('change', function() {
+            if (this.value !== 'bearer') {
+                authConfigSection.style.display = 'block';
+            } else {
+                authConfigSection.style.display = 'none';
+            }
+        });
+
+        // Toggle edit auth config section based on auth method
+        editAuthMethodSelect.addEventListener('change', function() {
+            if (this.value !== 'bearer') {
+                editAuthConfigSection.style.display = 'block';
+            } else {
+                editAuthConfigSection.style.display = 'none';
+            }
+        });
+
+        // Fetch and display profiles
+        async function loadProfiles() {
+            const response = await fetch(API_BASE);
+            const profiles = await response.json();
+
+            const container = document.getElementById('profiles-container');
+            container.innerHTML = '';
+
+            profiles.forEach(profile => {
+                // Determine if this is an LLM profile to show/hide LLM-specific UI
+                const isLLM = profile.apiType === 'llm' || (!profile.apiType && profile.testEndpoint === '/models');
+                
+                const profileEl = document.createElement('div');
+                profileEl.className = 'profile';
+                profileEl.innerHTML = `
+                <h3>${profile.name}</h3>
+                <p><strong>Base URL:</strong> <span class="base-url-value">${profile.baseUrl || 'N/A'}</span> ${profile.baseUrl ? `<button class="copy-btn copy-url-btn" data-url="${profile.baseUrl}">Copy</button>` : ''}</p>
+                <p><strong>API Type:</strong> ${profile.apiType || 'llm'}</p>
+                    <p><strong>Auth Method:</strong> ${profile.authMethod || 'bearer'}</p>
+                    <p><strong>Keys:</strong></p>
+                    <div class="api-keys-list">
+                        ${Object.entries(profile.keys).map(([keyName, keyValue]) => `
+                            <div class="api-key-item">
+                                <span class="key-name">${keyName}:</span>
+                                <span class="key-value">${keyValue}</span>
+                                <button class="copy-btn" data-key="${keyValue}">Copy</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button data-action="edit" data-profile="${profile.name}">Edit</button>
+                    <button class="delete" data-action="delete" data-profile="${profile.name}">Delete</button>
+                    <select id="key-select-${profile.name}" style="margin-left: 10px;">
+                        ${Object.keys(profile.keys).map(key => `<option value="${key}">${key}</option>`).join('')}
+                    </select>
+                    <button class="test" data-action="test" data-profile="${profile.name}">Test Connection</button>
+                    ${isLLM ? `
+                    <div id="llm-interaction-${profile.name}" style="margin-top: 10px; display: none;">
+                        <select id="model-select-${profile.name}" style="margin-right: 5px;"></select>
+                        <button data-action="send-llm" data-profile="${profile.name}">Send Standard Message</button>
+                        <div id="llm-response-${profile.name}" style="margin-top: 10px; font-size: 13px; white-space: pre-wrap;"></div>
+                    </div>
+                    ` : ''}
+                `;
+                container.appendChild(profileEl);
+            });
+        }
+        
+        // Show Create Profile Modal
+        newProfileBtn.addEventListener('click', () => {
+            createProfileModal.style.display = 'block';
+        });
+
+        // Create new profile
+        createBtn.addEventListener('click', async () => {
+            const name = profileNameInput.value;
+            const baseUrl = baseUrlInput.value;
+            const apiType = apiTypeSelect.value;
+            const authMethod = authMethodSelect.value;
+            const headerName = headerNameInput.value;
+            const headerFormat = headerFormatInput.value;
+            const paramName = paramNameInput.value;
+            const authLocation = authLocationSelect.value;
+            const testEndpoint = testEndpointInput.value;
+            const keysInput = apiKeysInput.value;
+
+            const keys = {};
+            if (keysInput) {
+                keysInput.split(',').forEach((value, index) => {
+                    const key = `API_KEY_${index + 1}`; // Autogenerate key name
+                    if (value.trim()) keys[key] = value.trim();
+                });
+            }
+
+            // Build profile object conditionally
+            const profile = { name, baseUrl, keys };
+            
+            // Only add extended configuration if not using defaults
+            if (apiType !== 'llm' || authMethod !== 'bearer' || 
+                headerName !== 'Authorization' || headerFormat !== 'Bearer {key}' ||
+                paramName || authLocation !== 'header' || testEndpoint !== '/models') {
+                
+                profile.apiType = apiType;
+                profile.authMethod = authMethod;
+                
+                // Only add authConfig if auth method is not bearer
+                if (authMethod !== 'bearer') {
+                    profile.authConfig = {};
+                    
+                    if (headerName !== 'Authorization') profile.authConfig.headerName = headerName;
+                    if (headerFormat !== 'Bearer {key}') profile.authConfig.headerFormat = headerFormat;
+                    if (paramName) profile.authConfig.paramName = paramName;
+                    if (authLocation !== 'header') profile.authConfig.location = authLocation;
+                }
+                
+                if (testEndpoint !== '/models') profile.testEndpoint = testEndpoint;
+            }
+
+            const response = await fetch(API_BASE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(profile)
+            });
+
+            if (response.ok) {
+                alert('Profile created successfully!');
+                // Reset form to defaults
+                profileNameInput.value = '';
+                baseUrlInput.value = '';
+                apiTypeSelect.value = 'llm';
+                authMethodSelect.value = 'bearer';
+                headerNameInput.value = 'Authorization';
+                headerFormatInput.value = 'Bearer {key}';
+                paramNameInput.value = '';
+                authLocationSelect.value = 'header';
+                testEndpointInput.value = '/models';
+                apiKeysInput.value = '';
+                
+                // Hide auth config section for default settings
+                authConfigSection.style.display = 'none';
+                
+                createProfileModal.style.display = 'none'; // Hide modal on success
+                loadProfiles();
+            } else {
+                const error = await response.json();
+                alert(`Error: ${error.error}`);
+            }
+        });
+
+        // Close create modal when clicking on (x)
+        createCloseButton.onclick = function() {
+            createProfileModal.style.display = 'none';
+        }
+        
+        // Delete profile
+        async function deleteProfile(name) {
+            if (confirm(`Are you sure you want to delete profile "${name}"?`)) {
+                const response = await fetch(`${API_BASE}/${name}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadProfiles();
+                } else {
+                    const error = await response.json();
+                    alert(`Error: ${error.error}`);
+                }
+            }
+        }
+        
+        // Start editing a profile (opens modal)
+        async function startEditProfile(name) {
+            try {
+                const response = await fetch(`${API_BASE}/${name}`);
+                const profile = await response.json();
+
+                currentEditProfile = profile;
+
+                editProfileNameInput.value = profile.name;
+                editBaseUrlInput.value = profile.baseUrl || '';
+                editApiTypeSelect.value = profile.apiType || 'llm';
+                editAuthMethodSelect.value = profile.authMethod || 'bearer';
+                
+                // Set auth config fields if they exist
+                if (profile.authConfig) {
+                    editHeaderNameInput.value = profile.authConfig.headerName || 'Authorization';
+                    editHeaderFormatInput.value = profile.authConfig.headerFormat || 'Bearer {key}';
+                    editParamNameInput.value = profile.authConfig.paramName || '';
+                    editAuthLocationSelect.value = profile.authConfig.location || 'header';
+                } else {
+                    // Set defaults if no auth config exists
+                    editHeaderNameInput.value = 'Authorization';
+                    editHeaderFormatInput.value = 'Bearer {key}';
+                    editParamNameInput.value = '';
+                    editAuthLocationSelect.value = 'header';
+                }
+                
+                // Set test endpoint
+                editTestEndpointInput.value = profile.testEndpoint || '/models';
+
+                // Format keys as string
+                const keysStr = Object.values(profile.keys)
+                    .join(',');
+                editApiKeysInput.value = keysStr;
+
+                // Show/hide auth config section based on auth method
+                if (editAuthMethodSelect.value !== 'bearer') {
+                    editAuthConfigSection.style.display = 'block';
+                } else {
+                    editAuthConfigSection.style.display = 'none';
+                }
+
+                editProfileModal.style.display = 'block'; // Show the modal
+            } catch (err) {
+                alert(`Error loading profile: ${err.message}`);
+            }
+        }
+        
+        // Update profile
+        updateBtn.addEventListener('click', async () => {
+            if (!currentEditProfile) return;
+
+            const name = document.getElementById('edit-profile-name').value;
+            const baseUrl = document.getElementById('edit-base-url').value;
+            const apiType = editApiTypeSelect.value;
+            const authMethod = editAuthMethodSelect.value;
+            const headerName = editHeaderNameInput.value;
+            const headerFormat = editHeaderFormatInput.value;
+            const paramName = editParamNameInput.value;
+            const authLocation = editAuthLocationSelect.value;
+            const testEndpoint = editTestEndpointInput.value;
+            const keysInput = document.getElementById('edit-api-keys').value;
+
+            const keys = {};
+            if (keysInput) {
+                keysInput.split(',').forEach((value, index) => {
+                    const key = `API_KEY_${index + 1}`; // Autogenerate key name
+                    if (value.trim()) keys[key] = value.trim();
+                });
+            }
+
+            try {
+                // Build profile object conditionally
+                const profile = { name, baseUrl, keys };
+                
+                // Only add extended configuration if not using defaults
+                if (apiType !== 'llm' || authMethod !== 'bearer' || 
+                    headerName !== 'Authorization' || headerFormat !== 'Bearer {key}' ||
+                    paramName || authLocation !== 'header' || testEndpoint !== '/models') {
+                    
+                    profile.apiType = apiType;
+                    profile.authMethod = authMethod;
+                    
+                    // Only add authConfig if auth method is not bearer
+                    if (authMethod !== 'bearer') {
+                        profile.authConfig = {};
+                        
+                        if (headerName !== 'Authorization') profile.authConfig.headerName = headerName;
+                        if (headerFormat !== 'Bearer {key}') profile.authConfig.headerFormat = headerFormat;
+                        if (paramName) profile.authConfig.paramName = paramName;
+                        if (authLocation !== 'header') profile.authConfig.location = authLocation;
+                    }
+                    
+                    if (testEndpoint !== '/models') profile.testEndpoint = testEndpoint;
+                }
+
+                const response = await fetch(`${API_BASE}/${currentEditProfile.name}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(profile)
+                });
+
+                if (response.ok) {
+                    alert('Profile updated successfully!');
+                    currentEditProfile = null;
+                    cancelEdit();
+                    loadProfiles();
+                } else {
+                    const error = await response.json();
+                    alert(`Error: ${error.error}`);
+                }
+            } catch (err) {
+                alert(`Error updating profile: ${err.message}`);
+            }
+        });
+        
+        // Cancel edit (closes modal)
+        function cancelEdit() {
+            editProfileModal.style.display = 'none';
+            currentEditProfile = null;
+        }
+        
+        cancelEditBtn.addEventListener('click', cancelEdit);
+
+        // Close edit modal when clicking on (x)
+        editCloseButton.onclick = function() {
+            cancelEdit();
+        }
+
+        // Close edit modal when clicking outside of it
+        window.onclick = function(event) {
+            if (event.target == editProfileModal || event.target == createProfileModal) {
+                editProfileModal.style.display = 'none'; // Hide edit modal
+                createProfileModal.style.display = 'none'; // Hide create modal
+            }
+        }
+        
+        // Test profile connection
+        async function testProfile(name, keyName) {
+            const modal = document.getElementById('apiResponseModal');
+            const modalContent = document.getElementById('modal-response-content');
+            const closeButton = modal.querySelector('.close-button'); // Get the close button specifically from the API response modal
+
+            modalContent.textContent = 'Testing...';
+            modal.style.display = 'block'; // Show the modal
+
+            // When the user clicks on <span> (x), close the modal
+            closeButton.onclick = function() {
+                modal.style.display = 'none';
+            }
+
+            // When the user clicks anywhere outside of the modal, close it
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            }
+
+            try {
+                const response = await fetch('http://localhost:3025/test-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, keyName })
+                });
+
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    modalContent.textContent = `Error: Received non-JSON response: ${text.slice(0, 500)}`;
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (result.valid) {
+                    // Build detailed success message
+                    let message = `✅ API Key Validated!\n`;
+                    message += `Status: ${result.status}\n`;
+                    
+                    if (result.message) {
+                        message += `${result.message}\n`;
+                    }
+                    
+                    // Show models if available
+                    if (result.models && result.models.length > 0) {
+                        message += `\n📋 Available Models (${result.models.length}):\n`;
+                        result.models.forEach(model => {
+                            message += `  • ${model}\n`;
+                        });
+                    } else if (result.modelsError) {
+                        message += `\n⚠️ Models List: ${result.modelsError}\n`;
+                    }
+                    
+                    modalContent.textContent = message;
+
+                    // Populate model dropdown and show interaction section (only for LLM profiles)
+                    const llmInteractionDiv = document.getElementById(`llm-interaction-${name}`);
+                    const modelSelect = document.getElementById(`model-select-${name}`);
+                    
+                    // Only update these elements if they exist (LLM profiles)
+                    if (modelSelect) {
+                        modelSelect.innerHTML = ''; // Clear previous options
+                    }
+                    if (result.models && result.models.length > 0) {
+                        if (modelSelect) {
+                            result.models.forEach(model => {
+                                const option = document.createElement('option');
+                                option.value = model;
+                                option.textContent = model;
+                                modelSelect.appendChild(option);
+                            });
+                        }
+                        if (llmInteractionDiv) {
+                            llmInteractionDiv.style.display = 'block'; // Show the interaction section
+                        }
+                    } else {
+                        if (llmInteractionDiv) {
+                            llmInteractionDiv.style.display = 'none'; // Hide if no models
+                        }
+                    }
+
+                } else {
+                    // Build detailed error message
+                    let message = `❌ Connection Failed!\n`;
+                    message += `Error: ${result.error || 'Unknown error'}\n`;
+                    if (result.status) {
+                        message += `Status: ${result.status}\n`;
+                    }
+                    
+                    // Still show models if we got them before the key validation failed
+                    if (result.models && result.models.length > 0) {
+                        message += `\n📋 Models Found (${result.models.length}):\n`;
+                        result.models.slice(0, 5).forEach(model => {
+                            message += `  • ${model}\n`;
+                        });
+                        if (result.models.length > 5) {
+                            message += `  ... and ${result.models.length - 5} more\n`;
+                        }
+                    }
+                    
+                    modalContent.textContent = message;
+                    
+                    // Hide LLM interaction section on failure (only if it exists)
+                    const llmDiv = document.getElementById(`llm-interaction-${name}`);
+                    if (llmDiv) {
+                        llmDiv.style.display = 'none';
+                    }
+                }
+            } catch (err) {
+                modalContent.textContent = `❌ Error: ${err.message}`;
+            }
+        }
+        
+        // Add event delegation for profile actions
+        document.getElementById('profiles-container').addEventListener('click', function(event) {
+        // Handle copy buttons for API keys
+        if (event.target.classList.contains('copy-btn') && event.target.hasAttribute('data-key')) {
+        const keyValue = event.target.getAttribute('data-key');
+        navigator.clipboard.writeText(keyValue).then(() => {
+        alert('Copied to clipboard!');
+        }).catch(err => {
+        console.error('Failed to copy: ', err);
+        });
+        }
+        
+        // Handle copy buttons for base URLs
+        if (event.target.classList.contains('copy-url-btn') && event.target.hasAttribute('data-url')) {
+        const urlValue = event.target.getAttribute('data-url');
+        navigator.clipboard.writeText(urlValue).then(() => {
+        alert('Base URL copied to clipboard!');
+        }).catch(err => {
+        console.error('Failed to copy: ', err);
+        });
+        }
+            
+            // Handle profile actions (edit, delete, test, send-llm)
+            if (event.target.hasAttribute('data-action')) {
+                const action = event.target.getAttribute('data-action');
+                const profileName = event.target.getAttribute('data-profile');
+                
+                switch(action) {
+                    case 'edit':
+                        startEditProfile(profileName);
+                        break;
+                    case 'delete':
+                        deleteProfile(profileName);
+                        break;
+                    case 'test':
+                        const keySelect = document.getElementById(`key-select-${profileName}`);
+                        if (keySelect) {
+                            testProfile(profileName, keySelect.value);
+                        } else {
+                            testProfile(profileName, 'apiKey'); // Default fallback
+                        }
+                        break;
+                    case 'send-llm':
+                        const llmKeySelect = document.getElementById(`key-select-${profileName}`);
+                        const modelSelect = document.getElementById(`model-select-${profileName}`);
+                        if (llmKeySelect && modelSelect) {
+                            sendLLMMessage(profileName, llmKeySelect.value, modelSelect.value);
+                        } else {
+                            alert('Required elements not found for sending LLM message');
+                        }
+                        break;
+                }
+            }
+        });
+        
+        // Function to send LLM message
+        async function sendLLMMessage(name, keyName, modelName) {
+            const llmResponseDiv = document.getElementById(`llm-response-${name}`);
+            llmResponseDiv.textContent = 'Sending message...';
+
+            try {
+                const response = await fetch('http://localhost:3025/send-llm-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        keyName,
+                        modelName,
+                        message: 'Hello, what is your purpose?' // Standard message
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    llmResponseDiv.textContent = `LLM Response: ${result.response}`;
+                } else {
+                    llmResponseDiv.textContent = `LLM Error: ${result.error}`;
+                }
+            } catch (err) {
+                llmResponseDiv.textContent = `LLM Request Failed: ${err.message}`;
+            }
+        }
+
+        // Initial load
+        loadProfiles();
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "api-key-manager",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node tests/profiles.test.js && node tests/web.test.js",
+    "test:profiles": "node tests/profiles.test.js",
+    "test:web": "node tests/web.test.js",
+    "cli": "node cli.js",
+    "web": "node web.js"
+  },
+  "bin": {
+    "apikeys": "cli.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "commander": "^12.0.0",
+    "express": "^4.19.2"
+  }
+}
